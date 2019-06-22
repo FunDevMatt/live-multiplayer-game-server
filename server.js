@@ -40,7 +40,6 @@ io.on('connection', (socket) => {
 				socket.on('disconnect', () => {
 					nameSpace.emit('user-left', 'A user has left');
 					delete io.nsps['/' + gameNamespace];
-					console.log(Object.keys(io.nsps));
 				});
 			});
 

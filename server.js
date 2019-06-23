@@ -6,7 +6,6 @@ const uuidv1 = require('uuid/v1');
 server.listen(3500);
 
 let searchingPool = {};
-let activeMatches = {};
 
 io.on('connection', (socket) => {
 	// player starts looking for opponent
@@ -48,20 +47,22 @@ io.on('connection', (socket) => {
 				// Make sure both users have loaded correctly
 				nspSocket.on('user-ready', (name) => {
 					activeMatches[gameNamespace][nspSocket.id] = name;
+					// make sure both users have loaded to next page
 					if (Object.entries(activeMatches[gameNamespace]).length === 2) {
-						let opponentName = '';
+						let players = [];
+						// send to client the users invloved in the match
 						for (let player in activeMatches[gameNamespace]) {
-							if (player !== nspSocket.id) {
-								opponentName = activeMatches[gameNamespace][player];
-							}
+							let playerObject = {
+								name: activeMatches[gameNamespace][player],
+								socketId: player
+							};
+							players.push(playerObject);
 						}
-						nspSocket.to(nspSocket.id).emit('match-info', {
-							username: activeMatches[gameNamespace][nspSocket.id],
-							opponentUsername: opponentName
-						});
+						nameSpace.emit('match-info', players);
 					}
 				});
 
+				// if user disconnects, wipe the namespace out of active matches and delete the namespace
 				nspSocket.on('disconnect', () => {
 					nameSpace.emit('user-left', 'A user has left');
 					delete activeMatches[gameNamespace];

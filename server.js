@@ -7,7 +7,10 @@ server.listen(3500);
 
 let searchingPool = {};
 
+let usersOnline = 0;
 io.on('connection', (socket) => {
+	usersOnline++;
+	io.emit('users-online', usersOnline);
 	// player starts looking for opponent
 	socket.on('game-searching', (name) => {
 		// check if there are any opponents waiting in the search pool
@@ -79,6 +82,8 @@ io.on('connection', (socket) => {
 	});
 
 	socket.on('disconnect', () => {
+		usersOnline--;
+		io.emit('users-online', usersOnline);
 		delete searchingPool[socket.id];
 	});
 });

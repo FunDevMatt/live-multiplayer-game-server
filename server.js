@@ -19,29 +19,8 @@ io.on('connection', (socket) => {
 			let opponentId = Object.keys(searchingPool)[0];
 			let opponent = searchingPool[opponentId];
 
-			// generate random namespace for match
+			// generate random namespace name for match
 			const gameNamespace = uuidv1();
-			activeMatches[gameNamespace] = {
-				playerOneId: socket.id,
-				playerOneName: name,
-				playerTwoId: opponentId,
-				playerTwoName: opponent['name']
-			};
-
-			const nameSpace = io.of(gameNamespace);
-
-			const nameSpaceArea = [];
-			nameSpace.on('connection', (socket) => {
-				nameSpaceArea.push(socket.id);
-				if (nameSpaceArea.length === 2) {
-					nameSpace.emit('welcome', gameNamespace);
-				}
-
-				socket.on('disconnect', () => {
-					nameSpace.emit('user-left', 'A user has left');
-					delete io.nsps['/' + gameNamespace];
-				});
-			});
 
 			socket.emit('opponent-found', {
 				socketId: opponentId,
@@ -57,6 +36,37 @@ io.on('connection', (socket) => {
 				socketId: socket.id,
 				name: name,
 				nameSpace: '/' + gameNamespace
+			});
+
+			// create a namespace for match
+			const nameSpace = io.of(gameNamespace);
+
+			let activeMatches = {};
+			activeMatches[gameNamespace] = {};
+
+			nameSpace.on('connection', (nspSocket) => {
+				// Make sure both users have loaded correctly
+				nspSocket.on('user-ready', (name) => {
+					activeMatches[gameNamespace][nspSocket.id] = name;
+					if (Object.entries(activeMatches[gameNamespace]).length === 2) {
+						let opponentName = '';
+						for (let player in activeMatches[gameNamespace]) {
+							if (player !== nspSocket.id) {
+								opponentName = activeMatches[gameNamespace][player];
+							}
+						}
+						nspSocket.to(nspSocket.id).emit('match-info', {
+							username: activeMatches[gameNamespace][nspSocket.id],
+							opponentUsername: opponentName
+						});
+					}
+				});
+
+				nspSocket.on('disconnect', () => {
+					nameSpace.emit('user-left', 'A user has left');
+					delete activeMatches[gameNamespace];
+					delete io.nsps['/' + gameNamespace];
+				});
 			});
 
 			// if there are no players waiting in pool, place the player searching in the pool

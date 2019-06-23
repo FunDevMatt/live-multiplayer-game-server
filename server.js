@@ -67,7 +67,7 @@ io.on('connection', (socket) => {
 
 				// if user disconnects, wipe the namespace out of active matches and delete the namespace
 				nspSocket.on('disconnect', () => {
-					nameSpace.emit('user-left', 'A user has left');
+					nameSpace.emit('user-left', usersOnline);
 					delete activeMatches[gameNamespace];
 					delete io.nsps['/' + gameNamespace];
 				});

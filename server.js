@@ -1,6 +1,7 @@
 let app = require('express')();
 let server = require('http').Server(app);
 let io = require('socket.io')(server);
+var ss = require('socket.io-stream');
 const uuidv1 = require('uuid/v1');
 
 const port = process.env.PORT || 3500;

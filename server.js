@@ -49,6 +49,9 @@ io.on('connection', (socket) => {
 			activeMatches[gameNamespace] = {};
 
 			nameSpace.on('connection', (nspSocket) => {
+				let getUsername = () => {
+					return activeMatches[gameNamespace][nspSocket.id];
+				};
 				// Make sure both users have loaded correctly
 				nspSocket.on('user-ready', (name) => {
 					activeMatches[gameNamespace][nspSocket.id] = name;
@@ -65,6 +68,14 @@ io.on('connection', (socket) => {
 						}
 						nameSpace.emit('match-info', players);
 					}
+				});
+
+				nspSocket.on('message-sent', (message) => {
+					let username = getUsername();
+					nameSpace.emit('message-received', {
+						text: message,
+						username
+					});
 				});
 
 				// if user disconnects, wipe the namespace out of active matches and delete the namespace

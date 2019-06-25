@@ -3,7 +3,9 @@ let server = require('http').Server(app);
 let io = require('socket.io')(server);
 const uuidv1 = require('uuid/v1');
 
-server.listen(3500);
+const port = process.env.PORT || 3500;
+
+server.listen(port);
 
 let searchingPool = {};
 

@@ -6,7 +6,9 @@ const uuidv1 = require('uuid/v1');
 
 const port = process.env.PORT || 3500;
 
-server.listen(port);
+server.listen(port, () => {
+	console.log(`Server is up on ${port}`)
+});
 
 let searchingPool = {};
 
@@ -81,7 +83,7 @@ io.on('connection', (socket) => {
 
 				// if user disconnects, wipe the namespace out of active matches and delete the namespace
 				nspSocket.on('disconnect', () => {
-					nameSpace.emit('user-left', usersOnline);
+					nameSpace.emit('user-left');
 					delete activeMatches[gameNamespace];
 					delete io.nsps['/' + gameNamespace];
 				});

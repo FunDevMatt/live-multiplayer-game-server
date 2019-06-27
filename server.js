@@ -7,10 +7,11 @@ const uuidv1 = require('uuid/v1');
 const port = process.env.PORT || 3500;
 
 server.listen(port, () => {
-	console.log(`Server is up on ${port}`)
+	console.log(`Server is up on ${port}`);
 });
 
 let searchingPool = {};
+let peerConnections = {};
 
 let usersOnline = 0;
 io.on('connection', (socket) => {
@@ -49,8 +50,8 @@ io.on('connection', (socket) => {
 			const nameSpace = io.of(gameNamespace);
 
 			let activeMatches = {};
+			let peerConnections = {};
 			activeMatches[gameNamespace] = {};
-
 			nameSpace.on('connection', (nspSocket) => {
 				let getUsername = () => {
 					return activeMatches[gameNamespace][nspSocket.id];
@@ -79,6 +80,13 @@ io.on('connection', (socket) => {
 						text: message,
 						username
 					});
+				});
+
+				nspSocket.on('peer-id', (data) => {
+					peerConnections[data.name] = data.peerId;
+					if (Object.entries(peerConnections).length === 2) {
+						nspSocket.emit('peer-connections', peerConnections);
+					}
 				});
 
 				// if user disconnects, wipe the namespace out of active matches and delete the namespace

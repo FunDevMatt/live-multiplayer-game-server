@@ -50,8 +50,8 @@ io.on('connection', (socket) => {
 			const nameSpace = io.of(gameNamespace);
 
 			let activeMatches = {};
-			let peerConnections = {};
 			activeMatches[gameNamespace] = {};
+			peerConnections[gameNamespace] = {};
 			nameSpace.on('connection', (nspSocket) => {
 				let getUsername = () => {
 					return activeMatches[gameNamespace][nspSocket.id];
@@ -83,18 +83,24 @@ io.on('connection', (socket) => {
 				});
 
 				nspSocket.on('peer-id', (data) => {
-					peerConnections[data.name] = data.peerId;
-					if (Object.entries(peerConnections).length === 2) {
-						nspSocket.emit('peer-connections', peerConnections);
+	
+					peerConnections[gameNamespace][data.name]= data.peerId;
+					Object.entries(peerConnections[gameNamespace]).length
+					if (Object.entries(peerConnections[gameNamespace]).length === 2) {
+						console.log("BOTH")
+						nspSocket.emit('peer-connections', peerConnections[gameNamespace]);
 					}
 				});
 
 				// if user disconnects, wipe the namespace out of active matches and delete the namespace
 				nspSocket.on('disconnect', () => {
 					nameSpace.emit('user-left');
+					peerConnections = {};
 					delete activeMatches[gameNamespace];
+					delete peerConnections[gameNamespace];
 					delete io.nsps['/' + gameNamespace];
 				});
+
 			});
 
 			// if there are no players waiting in pool, place the player searching in the pool

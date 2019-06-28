@@ -97,6 +97,14 @@ io.on('connection', (socket) => {
 				let getUsername = () => {
 					return activeMatches[gameNamespace][nspSocket.id];
 				};
+
+				let getOpponentUsername = () => {
+					for (let person of Object.keys(activeMatches[gameNamespace])) {
+						if (activeMatches[gameNamespace][person] !== getUsername()) {
+							return activeMatches[gameNamespace][person];
+						}
+					}
+				}
 				// Make sure both users have loaded correctly
 				nspSocket.on('user-ready', (name) => {
 					activeMatches[gameNamespace][nspSocket.id] = name;
@@ -121,11 +129,16 @@ io.on('connection', (socket) => {
 						room: data.data.uniqueName,
 					  });
 					token.addGrant(videoGrant)
-					token.identity = "greg"
-					console.log(token)
-					data.token = token.toJwt();
 
-					nameSpace.emit("room-info", data)
+					// emit room info to person who created room with correct identity
+					token.identity = getUsername();
+					data.token = token.toJwt();
+					nspSocket.emit("room-info", data)
+
+					// emit room info to matched person with their identity
+					token.identity = getOpponentUsername();
+					data.token = token.toJwt();
+					nspSocket.broadcast.emit("room-info", data)
 				})
 
 				nspSocket.on('message-sent', (message) => {

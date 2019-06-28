@@ -131,12 +131,12 @@ io.on('connection', (socket) => {
 					token.addGrant(videoGrant)
 
 					// emit room info to person who created room with correct identity
-					token.identity = getUsername();
+					token.identity = uuidv1();
 					data.token = token.toJwt();
 					nspSocket.emit("room-info", data)
 
 					// emit room info to matched person with their identity
-					token.identity = getOpponentUsername();
+					token.identity = uuidv1();
 					data.token = token.toJwt();
 					nspSocket.broadcast.emit("room-info", data)
 				})

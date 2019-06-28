@@ -3,16 +3,58 @@ let server = require('http').Server(app);
 let io = require('socket.io')(server);
 var ss = require('socket.io-stream');
 const uuidv1 = require('uuid/v1');
+var cors = require('cors')
+var bodyParser  = require('body-parser');
+
+
 
 const port = process.env.PORT || 3500;
+app.use(cors())
+app.use(bodyParser.json());
+
+
+
+
+var AccessToken = require('twilio').jwt.AccessToken;
+const VideoGrant = AccessToken.VideoGrant;
+var ACCOUNT_SID = 'AC92768a023e12375f36b7df65835f7aa8';
+var API_KEY_SID = 'SK432ad20c199404ec122432ebe856a64e';
+var API_KEY_SECRET = 'PDYKdjESyvfNUIUVRus7P8RgiYWrb9Fz';
+
+var accessToken = new AccessToken(
+	ACCOUNT_SID,
+	API_KEY_SID,
+	API_KEY_SECRET
+);
+
+
+const accountSid = 'AC92768a023e12375f36b7df65835f7aa8';
+const authToken = '6db5b2da3b864cb20192cec0bb7064e7';
+const client = require('twilio')(accountSid, authToken);
+const { connect, createLocalTracks } = require('twilio-video');
+
+app.post("/create-room", async (req, res) => {
+	let roomName = uuidv1();
+	try {
+		let room =  await client.video.rooms
+            .create({
+               enableTurn: true,
+               type: 'peer-to-peer',
+               uniqueName: roomName
+             })
+		res.send(room)
+	} catch (e) {
+		return e
+	}
+	
+})
+
 
 server.listen(port, () => {
 	console.log(`Server is up on ${port}`);
 });
 
 let searchingPool = {};
-let peerConnections = {};
-
 let usersOnline = 0;
 io.on('connection', (socket) => {
 	usersOnline++;
@@ -51,7 +93,6 @@ io.on('connection', (socket) => {
 
 			let activeMatches = {};
 			activeMatches[gameNamespace] = {};
-			peerConnections[gameNamespace] = {};
 			nameSpace.on('connection', (nspSocket) => {
 				let getUsername = () => {
 					return activeMatches[gameNamespace][nspSocket.id];
@@ -74,6 +115,19 @@ io.on('connection', (socket) => {
 					}
 				});
 
+				nspSocket.on("new-room-info", (data) => {
+					let token = accessToken;
+					const videoGrant = new VideoGrant({
+						room: data.data.uniqueName,
+					  });
+					token.addGrant(videoGrant)
+					token.identity = "greg"
+					console.log(token)
+					data.token = token.toJwt();
+
+					nameSpace.emit("room-info", data)
+				})
+
 				nspSocket.on('message-sent', (message) => {
 					let username = getUsername();
 					nameSpace.emit('message-received', {
@@ -82,22 +136,13 @@ io.on('connection', (socket) => {
 					});
 				});
 
-				nspSocket.on('peer-id', (data) => {
-	
-					peerConnections[gameNamespace][data.name]= data.peerId;
-					Object.entries(peerConnections[gameNamespace]).length
-					if (Object.entries(peerConnections[gameNamespace]).length === 2) {
-						console.log("BOTH")
-						nspSocket.emit('peer-connections', peerConnections[gameNamespace]);
-					}
-				});
+				
 
 				// if user disconnects, wipe the namespace out of active matches and delete the namespace
 				nspSocket.on('disconnect', () => {
 					nameSpace.emit('user-left');
 					peerConnections = {};
 					delete activeMatches[gameNamespace];
-					delete peerConnections[gameNamespace];
 					delete io.nsps['/' + gameNamespace];
 				});
 
